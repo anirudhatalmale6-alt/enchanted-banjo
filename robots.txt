@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-
-Sitemap: https://banjospirits.com/sitemap.xml
+Sitemap: https://www.banjospirits.com/sitemap.xml

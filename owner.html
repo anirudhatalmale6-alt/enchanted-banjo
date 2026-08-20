@@ -1,122 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
 <title>Banjo Spirits — Site owner</title>
-<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.banjospirits.com/owner.html">
+<meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/owner.html">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:#0c0710;color:#efe6ff;font-family:"Segoe UI",system-ui,sans-serif;
-       display:flex;align-items:center;justify-content:center;padding:24px}
-  .card{background:#140c26;border:1px solid #4a2f6e;border-radius:18px;padding:26px;width:min(460px,94vw)}
-  h1{font-size:22px;margin-bottom:6px;background:linear-gradient(180deg,#e9d4ff,#9b5cff);
-     -webkit-background-clip:text;background-clip:text;color:transparent}
-  p{opacity:.78;font-size:14px;line-height:1.6;margin-bottom:14px}
-  ol{margin:0 0 16px 18px;font-size:14px;line-height:1.9;opacity:.85}
-  input{width:100%;padding:12px;border-radius:10px;border:1px solid #4a2f6e;background:#0e0718;
-        color:#efe6ff;font:inherit;margin-bottom:10px}
-  button{width:100%;cursor:pointer;font:inherit;padding:12px;border:none;border-radius:12px;
-         background:linear-gradient(180deg,#7a3cff,#5322b0);color:#fff}
-  .msg{min-height:20px;font-size:14px;margin-top:12px}
-  .ok{color:#9df5c0} .err{color:#ff9aa2}
+  body{min-height:100vh;margin:0;background:#0c0710;color:#efe6ff;
+       font-family:"Segoe UI",system-ui,sans-serif;display:flex;
+       align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
   a{color:#c7b3ff}
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Site owner</h1>
-    <div id="body">
-      <p>Loading…</p>
-    </div>
-    <div class="msg" id="msg"></div>
-  </div>
-
-<script src="bs-api.js"></script>
-<script>
-(async function(){
-  const body = document.getElementById('body');
-  const msg  = document.getElementById('msg');
-  const show = (t, cls) => { msg.className = 'msg ' + (cls||''); msg.textContent = t; };
-
-  const state = await BS.init();
-
-  if(state.mode !== 'live'){
-    body.innerHTML = '<p>This page only works on the live site, not the preview copy.</p>';
-    return;
-  }
-  if(!state.user){
-    body.innerHTML = '<p>Sign in first, using the button in the top corner, then come back to this page.</p>';
-    return;
-  }
-  if(state.user.isOwner){
-    body.innerHTML = '<p>You are the owner of this site.</p>' +
-      '<p>To take something down, open the forest, the sky or Paper Valley, click the one ' +
-      'in question, and use Remove. You can remove anything; everyone else can only remove their own.</p>' +
-      '<p><a href="plant.html">Go to the forest</a> &nbsp;·&nbsp; <a href="sky.html">Go to the sky</a>' +
-      ' &nbsp;·&nbsp; <a href="paper-valley.html">Go to Paper Valley</a></p>' +
-      '<div id="takedowns"></div>';
-    renderTakedowns();
-    return;
-  }
-
-  // Someone who was posted about and would rather not be. These are the ones that matter
-  // most and there is nowhere else they surface, so they sit on the owner's own page.
-  async function renderTakedowns(){
-    const box = document.getElementById('takedowns');
-    const list = await BS.getTakedowns();
-    if(!list.length){
-      box.innerHTML = '<p style="opacity:.6">No takedown requests waiting.</p>';
-      return;
-    }
-    box.innerHTML = '<h1 style="font-size:17px;margin:18px 0 8px">Takedown requests</h1>' +
-      '<p>Someone has asked to be removed from Paper Valley. Open the valley, find that ' +
-      'lantern and take it down, then mark it done here.</p>';
-    list.forEach((t) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'border:1px solid #4a2f6e;border-radius:12px;padding:12px;margin-bottom:9px';
-      row.innerHTML =
-        '<div style="font-weight:600;margin-bottom:4px"></div>' +
-        '<div style="font-size:13px;opacity:.7;margin-bottom:10px;white-space:pre-wrap"></div>' +
-        '<a style="font-size:13px" href="paper-valley.html?l=' + encodeURIComponent(t.lantern_id) + '">Open that lantern</a>' +
-        ' &nbsp; <button style="width:auto;padding:7px 12px;font-size:13px">Mark done</button>';
-      row.children[0].textContent = t.name || 'Unnamed lantern';
-      row.children[1].textContent = t.reason || 'No reason given.';
-      row.querySelector('button').onclick = async () => {
-        await BS.resolveTakedown(t.id);
-        renderTakedowns();
-      };
-      box.appendChild(row);
-    });
-  }
-
-  body.innerHTML =
-    '<p>Claiming ownership lets you take down anything cruel that someone writes in the forest ' +
-    'or the sky. It works once.</p>' +
-    '<ol><li>Open Railway and your banjo service</li>' +
-    '<li>Open the Deployments tab and view the log of the newest one</li>' +
-    '<li>Find the three words after <b>enter:</b></li>' +
-    '<li>Type them below</li></ol>' +
-    '<input id="code" placeholder="three-words-here" autocomplete="off" autocapitalize="off" spellcheck="false">' +
-    '<button id="go">Make me the owner</button>';
-
-  document.getElementById('go').onclick = async () => {
-    const code = document.getElementById('code').value.trim();
-    if(!code) return show('Type the three words first.', 'err');
-    show('Checking…');
-    try{
-      const r = await fetch('/api/claim-owner', {
-        method:'POST', credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ code })
-      });
-      const d = await r.json().catch(()=>({}));
-      if(!r.ok) return show(d.error || 'That did not work.', 'err');
-      show('Done - this site is yours. Reloading…', 'ok');
-      setTimeout(()=>location.reload(), 1200);
-    }catch(e){ show(e.message, 'err'); }
-  };
-})();
-</script>
+<p>Banjo Spirits now lives at <a href="https://www.banjospirits.com/owner.html">www.banjospirits.com</a>.<br>Taking you there now&hellip;</p>
+<script>location.replace("https://www.banjospirits.com/owner.html" + location.search + location.hash);</script>
 </body>
 </html>

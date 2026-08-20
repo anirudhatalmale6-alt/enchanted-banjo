@@ -5,26 +5,51 @@
 <title>Banjo Spirits</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://www.banjospirits.com/realistic.html">
-<meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/realistic.html">
+<!-- Only when scripting is off. Left loose in the head it schedules a second navigation
+     to the same place as the script below, and two navigations racing each other can end
+     with neither of them arriving - which is exactly the doorway getting stuck. -->
+<noscript><meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/realistic.html"></noscript>
 <style>
   body{min-height:100vh;margin:0;background:#0c0710;color:#efe6ff;
        font-family:"Segoe UI",system-ui,sans-serif;display:flex;
        align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
   .n{font-size:20px;letter-spacing:.04em;opacity:.9;margin:0 0 6px}
   .s{font-size:14px;opacity:.55;margin:0}
-  a{color:#c7b3ff;text-decoration:none}
+  a{color:#c7b3ff}
+  /* Hidden until the journey has plainly failed, so nobody is ever stranded with no way
+     onward. It is a plain tappable button, not a word that looks like decoration. */
+  #stuck{display:none;margin-top:18px}
+  #stuck a{display:inline-block;padding:11px 20px;border-radius:12px;text-decoration:none;
+           background:linear-gradient(180deg,#7a3cff,#5322b0);color:#fff;font-size:15px}
 </style>
 </head>
 <body>
 <div>
   <p class="n">Banjo Spirits</p>
-  <p class="s"><a href="https://www.banjospirits.com/realistic.html">Opening&hellip;</a></p>
+  <p class="s">Opening&hellip;</p>
+  <p id="stuck"><a href="https://www.banjospirits.com/realistic.html">Tap to continue &#9656;</a></p>
 </div>
-<!-- Deliberately the LAST thing on the page, so the browser paints this first and only
-     then leaves. Putting it in the head is faster on a good signal, but on a weak one it
-     means a blank white screen for the whole wait, with nothing to say the site is coming.
-     A dark screen with the name on it is worth the few milliseconds it costs. The colour
-     is on the <html> tag itself so even the very first paint is dark, never white. -->
-<script>location.replace("https://www.banjospirits.com/realistic.html" + location.search + location.hash);</script>
+<!-- Last thing on the page so the browser paints the name first and only then leaves.
+     In the head it would be quicker on a good signal but would show a blank white screen
+     for the whole wait on a poor one. -->
+<script>
+(function(){
+  var target = "https://www.banjospirits.com/realistic.html" + location.search + location.hash;
+  function go(replace){
+    try { replace ? location.replace(target) : (location.href = target); } catch (e) {}
+  }
+  go(true);
+  // A phone on a weak signal can drop that first attempt silently and simply sit here.
+  // So we check back: try once more, then with an ordinary navigation, which browsers are
+  // less willing to discard - and if even that has not taken, stop pretending and show a
+  // button. Better an honest tap than a page that says "Opening" forever.
+  setTimeout(function(){ go(true); }, 2500);
+  setTimeout(function(){ go(false); }, 6000);
+  setTimeout(function(){
+    var el = document.getElementById('stuck');
+    if (el) el.style.display = 'block';
+  }, 9000);
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 Days — Banjo Spirits</title>
+<meta name="description" content="A Ferris wheel at night. Every car carries something people are going through, and a song that helped. Free.">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#07040c}
+  body{font-family:"Segoe UI",system-ui,sans-serif;color:#efe6ff}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  /* the name of the ride, and a line telling a first-time visitor what this is */
+  #intro{position:fixed;left:0;right:0;bottom:22px;text-align:center;pointer-events:none;
+         font-size:14px;opacity:.72;text-shadow:0 2px 12px #000;padding:0 20px;line-height:1.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="intro">Twelve cars. Each one carries something people are going through — and a song that helped.</div>
+<script>
+(function(){
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+
+  // The twelve are hung alternating heavy, light, heavy, light. The wheel then does the
+  // work on its own: however long you watch, a run of hard cars can never come round
+  // together, because there is always an easier one between them.
+  const CARS = [
+    { name: 'Lonely',                    kind: 'heavy' },
+    { name: 'Songs That Got Me Through', kind: 'light' },
+    { name: 'Hate My Job',               kind: 'heavy' },
+    { name: 'Something Good Happened',   kind: 'light' },
+    { name: 'Not Enough Money',          kind: 'heavy' },
+    { name: 'What I’m Listening To',    kind: 'light' },
+    { name: 'Worn Out',                  kind: 'heavy' },
+    { name: 'Somebody Was Kind To Me',   kind: 'light' },
+    { name: 'Missing Someone',           kind: 'heavy' },
+    { name: 'Starting Over',             kind: 'heavy' },
+    { name: 'Scared About What’s Coming', kind: 'heavy' },
+    { name: 'Not Well',                  kind: 'heavy' },
+  ];
+
+  const RIDE_NAME = '5 DAYS';
+
+  let W = 0, H = 0, DPR = 1;
+  let cx = 0, cy = 0, R = 0;      // hub centre and rim radius
+  let groundY = 0;                 // where the ride stands
+  let angle = 0;                   // where the wheel has turned to
+  const SPEED = 0.055;             // radians per second - a real wheel is slow
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    // Everything is measured off the ground line, not off the middle of the screen.
+    // The ride has to stand on something, and the boarding platform and its arch need
+    // clear air beneath the wheel - otherwise the sign draws straight through the cars.
+    R  = Math.min(W * 0.40, H * 0.27);
+    cx = W / 2;
+    // 1.95 radii of clear air below the hub: the cars hang outside the rim and the sign
+    // board stands over the platform, so anything tighter draws the board through a car.
+    // The whole ride is then centred as one object, otherwise a narrow phone leaves a
+    // third of the screen empty above the wheel.
+    const assembly = R * 3.05;
+    const top = Math.max(H * 0.03, (H - assembly) / 2);
+    cy = top + R * 0.18 + R;
+    groundY = cy + R * 1.95;
+    buildSky();
+  }
+
+  // ---- the sky -------------------------------------------------------------
+  // Fixed stars, generated once per resize. They must not twinkle in time with the
+  // bulbs or the whole picture starts to strobe.
+  let stars = [];
+  function buildSky(){
+    stars = [];
+    const n = Math.round((W * H) / 9000);
+    for(let i=0;i<n;i++){
+      stars.push({
+        x: Math.random()*W,
+        y: Math.random()*H*0.78,
+        r: Math.random()*1.1 + 0.25,
+        a: Math.random()*0.5 + 0.18,
+        ph: Math.random()*Math.PI*2,
+      });
+    }
+  }
+
+  function drawSky(t){
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,   '#0a0718');
+    g.addColorStop(0.55,'#120a24');
+    g.addColorStop(1,   '#1a0f2b');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    for(const s of stars){
+      const tw = 0.75 + 0.25*Math.sin(t*0.7 + s.ph);
+      ctx.globalAlpha = s.a * tw;
+      ctx.fillStyle = '#dfd2ff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- bulbs ---------------------------------------------------------------
+  // A filament bulb is a small hot core inside a much larger soft halo, and it never
+  // sits perfectly still. The flicker is deliberately tiny - enough to feel like gas
+  // and tungsten rather than an LED, not enough to be noticed as movement.
+  function bulb(x, y, r, warmth, t, seed){
+    const flick = 0.90 + 0.10*Math.sin(t*7.3 + seed*12.9) * Math.sin(t*3.1 + seed*4.7);
+    const a = warmth * flick;
+    if(a <= 0.02) return;
+
+    const halo = ctx.createRadialGradient(x,y,0, x,y, r*9);
+    halo.addColorStop(0,   'rgba(255,205,135,'+(0.70*a)+')');
+    halo.addColorStop(0.28,'rgba(255,168,88,'+(0.30*a)+')');
+    halo.addColorStop(0.62,'rgba(255,140,60,'+(0.09*a)+')');
+    halo.addColorStop(1,   'rgba(255,130,55,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(x,y,r*9,0,Math.PI*2); ctx.fill();
+
+    // hot core - almost white in the middle, the way a filament reads at night
+    ctx.fillStyle = 'rgba(255,247,228,'+Math.min(1,1.0*a)+')';
+    ctx.beginPath(); ctx.arc(x,y,r*1.15,0,Math.PI*2); ctx.fill();
+  }
+
+  // ---- the ride ------------------------------------------------------------
+  function drawGround(){
+    const gy = groundY;
+    const g = ctx.createLinearGradient(0,gy-10,0,H);
+    g.addColorStop(0,'#150d22'); g.addColorStop(1,'#0b0714');
+    ctx.fillStyle = g; ctx.fillRect(0, gy-10, W, H-(gy-10));
+    ctx.strokeStyle = 'rgba(190,150,255,0.10)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,gy-10); ctx.lineTo(W,gy-10); ctx.stroke();
+  }
+
+  function drawLegs(){
+    const footY = groundY;
+    const spread = R * 0.78;
+    ctx.lineCap = 'round';
+    // One raked leg each side and a single tie between them. Fewer members read as more
+    // solid than a lattice does at this size - a lattice just turns into visual noise
+    // behind the cars.
+    ctx.strokeStyle = '#3a3152'; ctx.lineWidth = Math.max(4, R*0.038);
+    for(const dir of [-1, 1]){
+      ctx.beginPath();
+      ctx.moveTo(cx + dir*R*0.05, cy);
+      ctx.lineTo(cx + dir*spread, footY);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#332c49'; ctx.lineWidth = Math.max(2, R*0.018);
+    const ty = footY - (footY-cy)*0.22;
+    ctx.beginPath();
+    ctx.moveTo(cx - spread*0.80, ty);
+    ctx.lineTo(cx + spread*0.80, ty);
+    ctx.stroke();
+  }
+
+  function drawRimAndSpokes(t){
+    // rim
+    ctx.strokeStyle = '#4b3f68'; ctx.lineWidth = Math.max(3, R*0.028);
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = '#3b3154'; ctx.lineWidth = Math.max(2, R*0.016);
+    ctx.beginPath(); ctx.arc(cx,cy,R*0.93,0,Math.PI*2); ctx.stroke();
+
+    // spokes - two per car, crossing the hub, like real tension spokes
+    ctx.strokeStyle = 'rgba(150,125,200,0.34)';
+    ctx.lineWidth = Math.max(1, R*0.008);
+    for(let i=0;i<CARS.length;i++){
+      const a = angle + (i/CARS.length)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a)*R*0.14, cy + Math.sin(a)*R*0.14);
+      ctx.lineTo(cx + Math.cos(a)*R,      cy + Math.sin(a)*R);
+      ctx.stroke();
+    }
+
+    // the chase. Bulbs run round the rim in a travelling band, which is what a fairground
+    // wheel actually does - it is the movement people recognise, more than the wheel itself.
+    const N = 60;
+    for(let i=0;i<N;i++){
+      const a = angle*0.6 + (i/N)*Math.PI*2;
+      const x = cx + Math.cos(a)*R, y = cy + Math.sin(a)*R;
+      const phase = (i/N + t*0.16) % 1;
+      const band  = 0.45 + 0.55*Math.pow(Math.max(0, Math.cos(phase*Math.PI*2)), 2);
+      bulb(x, y, Math.max(1.6, R*0.013), band, t, i);
+    }
+  }
+
+  function drawHub(t){
+    const hr = R*0.185;
+    // disc
+    const g = ctx.createRadialGradient(cx,cy-hr*0.3,hr*0.1, cx,cy,hr);
+    g.addColorStop(0,'#241a3c'); g.addColorStop(1,'#150e26');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#5a4a80'; ctx.lineWidth = Math.max(2, R*0.014);
+    ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.stroke();
+
+    // ring of bulbs around the hub - these do NOT turn with the wheel, so the name
+    // stays put and readable while everything else rotates behind it
+    const N = 26;
+    for(let i=0;i<N;i++){
+      const a = (i/N)*Math.PI*2;
+      const x = cx + Math.cos(a)*hr, y = cy + Math.sin(a)*hr;
+      const phase = (i/N + t*0.10) % 1;
+      const band  = 0.5 + 0.5*Math.pow(Math.max(0, Math.cos(phase*Math.PI*2)), 2);
+      bulb(x, y, Math.max(1.4, R*0.011), band, t, i+90);
+    }
+
+    // the name
+    const fs = Math.max(13, hr*0.46);
+    ctx.font = '700 '+fs+'px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(255,190,120,0.95)'; ctx.shadowBlur = fs*1.5;
+    ctx.fillStyle = '#fff3dd';
+    ctx.fillText(RIDE_NAME, cx, cy);
+    ctx.shadowBlur = 0;
+  }
+
+  function drawCar(x, y, w, h, car, t, i, lit){
+    // hanger - the car swings from a pin on the rim and hangs level, always
+    ctx.strokeStyle = '#4b3f68'; ctx.lineWidth = Math.max(1.5, R*0.010);
+    ctx.beginPath(); ctx.moveTo(x, y - h*0.95); ctx.lineTo(x, y - h*0.42); ctx.stroke();
+
+    // body
+    const warm = car.kind === 'light';
+    const g = ctx.createLinearGradient(0, y-h*0.4, 0, y+h*0.5);
+    if(warm){ g.addColorStop(0,'#3c2a4e'); g.addColorStop(1,'#241635'); }
+    else    { g.addColorStop(0,'#2b2242'); g.addColorStop(1,'#1a1230'); }
+    ctx.fillStyle = g;
+    roundRect(x-w/2, y-h*0.42, w, h*0.9, Math.min(w,h)*0.22);
+    ctx.fill();
+    ctx.strokeStyle = lit ? 'rgba(255,206,150,0.85)' : '#544471';
+    ctx.lineWidth = Math.max(1.4, R*0.009); ctx.stroke();
+
+    // canopy
+    ctx.fillStyle = warm ? '#6b4a86' : '#4a3a68';
+    roundRect(x-w*0.56, y-h*0.60, w*1.12, h*0.22, h*0.10);
+    ctx.fill();
+
+    // two bulbs on the canopy edge
+    const b = lit ? 1 : 0.55;
+    bulb(x-w*0.42, y-h*0.46, Math.max(1.2, R*0.009), b, t, i*3+1);
+    bulb(x+w*0.42, y-h*0.46, Math.max(1.2, R*0.009), b, t, i*3+2);
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,   x+w,y+h, r);
+    ctx.arcTo(x+w,y+h, x,  y+h, r);
+    ctx.arcTo(x,  y+h, x,  y,   r);
+    ctx.arcTo(x,  y,   x+w,y,   r);
+    ctx.closePath();
+  }
+
+  function drawCars(t){
+    const w = R*0.30, h = R*0.24;
+    // draw the far side first so the near cars overlap them correctly
+    const placed = CARS.map((c,i)=>{
+      const a = angle + (i/CARS.length)*Math.PI*2 - Math.PI/2;
+      return { c, i, a, y: cy + Math.sin(a)*R };
+    });
+    // Only ever ONE car in the light. Picking the highest car rather than testing each
+    // against a threshold means two neighbours can never both light as they pass the top.
+    let topIdx = 0;
+    for(let k=1;k<placed.length;k++) if(placed[k].y < placed[topIdx].y) topIdx = k;
+    const order = placed.slice().sort((p,q)=> p.y - q.y);
+
+    for(const o of order){
+      const x = cx + Math.cos(o.a)*R;
+      const y = cy + Math.sin(o.a)*R;
+      // "at the top" - the car currently being carried into the light
+      const lit = (o.i === placed[topIdx].i);
+      drawCar(x, y + h*0.62, w, h, o.c, t, o.i, lit);
+
+      if(lit){
+        const fs = Math.max(12, R*0.055);
+        ctx.font = '600 '+fs+'px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10;
+        ctx.fillStyle = 'rgba(255,236,206,0.96)';
+        ctx.fillText(o.c.name, x, y - h*0.5);
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
+
+  function drawPlatform(t){
+    const gy = groundY;
+    const pw = R*0.98, ph = R*0.10;
+
+    // deck
+    ctx.fillStyle = '#221838';
+    roundRect(cx-pw/2, gy-ph, pw, ph, ph*0.28); ctx.fill();
+    ctx.strokeStyle = '#493a66'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // A marquee board rather than a bare arch. A travelling fair signs its rides on a
+    // painted board ringed with bulbs, and that is the thing that reads as "fairground"
+    // from across a field - the lettering has to sit inside the lights, not above them.
+    const bw = R*1.02, bh = R*0.30;
+    const bx = cx - bw/2, by = gy - ph - R*0.16 - bh;
+
+    // posts holding the board up
+    ctx.strokeStyle = '#3a3152'; ctx.lineWidth = Math.max(3, R*0.020);
+    for(const dir of [-1,1]){
+      ctx.beginPath();
+      ctx.moveTo(cx + dir*bw*0.40, gy-ph);
+      ctx.lineTo(cx + dir*bw*0.40, by+bh);
+      ctx.stroke();
+    }
+
+    // board face
+    const g = ctx.createLinearGradient(0,by,0,by+bh);
+    g.addColorStop(0,'#2c1f48'); g.addColorStop(1,'#1a1130');
+    ctx.fillStyle = g;
+    roundRect(bx, by, bw, bh, bh*0.30); ctx.fill();
+    ctx.strokeStyle = '#5a4a80'; ctx.lineWidth = Math.max(2, R*0.012);
+    ctx.stroke();
+
+    // bulbs right round the border, chasing the same way as the rim
+    const per = [];
+    const r0 = bh*0.30, N = 34;
+    for(let i=0;i<N;i++){
+      const u = i/N;
+      // walk the rounded rectangle as a simple perimeter
+      const w2 = bw - 2*r0, h2 = bh - 2*r0, total = 2*(w2+h2) + 2*Math.PI*r0;
+      let d = u*total, px, py;
+      if(d < w2){ px = bx+r0+d; py = by; }
+      else if((d-=w2) < Math.PI*r0/2){ const a=d/r0; px=bx+bw-r0+Math.sin(a)*r0; py=by+r0-Math.cos(a)*r0; }
+      else if((d-=Math.PI*r0/2) < h2){ px = bx+bw; py = by+r0+d; }
+      else if((d-=h2) < Math.PI*r0/2){ const a=d/r0; px=bx+bw-r0+Math.cos(a)*r0; py=by+bh-r0+Math.sin(a)*r0; }
+      else if((d-=Math.PI*r0/2) < w2){ px = bx+bw-r0-d; py = by+bh; }
+      else if((d-=w2) < Math.PI*r0/2){ const a=d/r0; px=bx+r0-Math.sin(a)*r0; py=by+bh-r0+Math.cos(a)*r0; }
+      else if((d-=Math.PI*r0/2) < h2){ px = bx; py = by+bh-r0-d; }
+      else { const a=(d-h2)/r0; px=bx+r0-Math.cos(a)*r0; py=by+r0-Math.sin(a)*r0; }
+      per.push({px,py,u});
+    }
+    for(let i=0;i<per.length;i++){
+      const phase = (per[i].u + t*0.13) % 1;
+      const band = 0.45 + 0.55*Math.pow(Math.max(0, Math.cos(phase*Math.PI*2)), 2);
+      bulb(per[i].px, per[i].py, Math.max(1.3, R*0.011), band, t, i+40);
+    }
+
+    // the name, inside the lights
+    const fs = Math.max(14, bh*0.46);
+    ctx.font = '700 '+fs+'px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(255,190,120,0.9)'; ctx.shadowBlur=fs*1.2;
+    ctx.fillStyle='#ffeccd';
+    ctx.fillText(RIDE_NAME, cx, by + bh*0.50);
+    ctx.shadowBlur=0;
+  }
+
+  // ---- loop ----------------------------------------------------------------
+  let last = 0;
+  function frame(ms){
+    const t = ms/1000;
+    const dt = last ? Math.min(0.05, t-last) : 0;
+    last = t;
+    angle += SPEED * dt;
+
+    drawSky(t);
+    drawGround();
+    drawLegs();
+    drawPlatform(t);
+    drawRimAndSpokes(t);
+    drawCars(t);
+    drawHub(t);
+
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

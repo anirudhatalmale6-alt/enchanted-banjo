@@ -5,50 +5,42 @@
 <title>Banjo Spirits</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://www.banjospirits.com/">
-<!-- Only when scripting is off. Left loose in the head it schedules a second navigation
-     to the same place as the script below, and two navigations racing each other can end
-     with neither of them arriving - which is exactly the doorway getting stuck. -->
 <noscript><meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/"></noscript>
 <style>
   body{min-height:100vh;margin:0;background:#0c0710;color:#efe6ff;
        font-family:"Segoe UI",system-ui,sans-serif;display:flex;
        align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
-  .n{font-size:20px;letter-spacing:.04em;opacity:.9;margin:0 0 6px}
-  .s{font-size:14px;opacity:.55;margin:0}
-  a{color:#c7b3ff}
-  /* Hidden until the journey has plainly failed, so nobody is ever stranded with no way
-     onward. It is a plain tappable button, not a word that looks like decoration. */
-  #stuck{display:none;margin-top:18px}
-  #stuck a{display:inline-block;padding:11px 20px;border-radius:12px;text-decoration:none;
-           background:linear-gradient(180deg,#7a3cff,#5322b0);color:#fff;font-size:15px}
+  .n{font-size:22px;letter-spacing:.04em;opacity:.92;margin:0 0 16px}
+  .enter{display:inline-block;padding:13px 26px;border-radius:12px;text-decoration:none;
+         background:linear-gradient(180deg,#7a3cff,#5322b0);color:#fff;font-size:16px;
+         box-shadow:0 6px 24px rgba(90,40,190,.45)}
+  .s{font-size:13px;opacity:.45;margin:16px 0 0}
 </style>
 </head>
 <body>
 <div>
   <p class="n">Banjo Spirits</p>
-  <p class="s">Opening&hellip;</p>
-  <p id="stuck"><a href="https://www.banjospirits.com/">Tap to continue &#9656;</a></p>
+  <!-- The button is here from the first paint, never hidden behind a timer. Some phones
+       silently refuse to follow an automatic redirect, and on those the automatic route
+       will never work no matter how it is written - but a link they will always follow.
+       So the door opens by itself where it can, and can always be pushed by hand. -->
+  <p><a class="enter" href="https://www.banjospirits.com/">Enter Banjo Spirits &#9656;</a></p>
+  <p class="s" id="msg">Opening&hellip;</p>
 </div>
-<!-- Last thing on the page so the browser paints the name first and only then leaves.
-     In the head it would be quicker on a good signal but would show a blank white screen
-     for the whole wait on a poor one. -->
 <script>
 (function(){
   var target = "https://www.banjospirits.com/" + location.search + location.hash;
+  // Doubles as a signal: if this line still reads "Opening" on a phone that is stuck,
+  // scripting never ran there, and that tells us which of the two routes is broken.
+  var m = document.getElementById('msg');
+  if (m) m.textContent = 'Taking you there\u2026';
   function go(replace){
     try { replace ? location.replace(target) : (location.href = target); } catch (e) {}
   }
   go(true);
-  // A phone on a weak signal can drop that first attempt silently and simply sit here.
-  // So we check back: try once more, then with an ordinary navigation, which browsers are
-  // less willing to discard - and if even that has not taken, stop pretending and show a
-  // button. Better an honest tap than a page that says "Opening" forever.
-  setTimeout(function(){ go(true); }, 2500);
-  setTimeout(function(){ go(false); }, 6000);
-  setTimeout(function(){
-    var el = document.getElementById('stuck');
-    if (el) el.style.display = 'block';
-  }, 9000);
+  setTimeout(function(){ go(true); }, 2000);
+  setTimeout(function(){ go(false); }, 5000);
+  setTimeout(function(){ if (m) m.textContent = 'Tap the button above to go in.'; }, 8000);
 })();
 </script>
 </body>

@@ -29,7 +29,8 @@
 </div>
 <script>
 (function(){
-  var target = "https://www.banjospirits.com" + location.pathname + location.search + location.hash;
+  var p = location.pathname === "/" ? "/index.html" : location.pathname;
+  var target = "https://www.banjospirits.com" + p + location.search + location.hash;
   // Doubles as a signal: if this line still reads "Opening" on a phone that is stuck,
   // scripting never ran there, and that tells us which of the two routes is broken.
   var m = document.getElementById('msg');

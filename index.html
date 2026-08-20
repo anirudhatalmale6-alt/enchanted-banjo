@@ -5,7 +5,7 @@
 <title>Banjo Spirits</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://www.banjospirits.com/">
-<noscript><meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/"></noscript>
+<noscript><meta http-equiv="refresh" content="0; url=https://www.banjospirits.com/index.html"></noscript>
 <style>
   body{min-height:100vh;margin:0;background:#0c0710;color:#efe6ff;
        font-family:"Segoe UI",system-ui,sans-serif;display:flex;
@@ -24,12 +24,12 @@
        silently refuse to follow an automatic redirect, and on those the automatic route
        will never work no matter how it is written - but a link they will always follow.
        So the door opens by itself where it can, and can always be pushed by hand. -->
-  <p><a class="enter" href="https://www.banjospirits.com/">Enter Banjo Spirits &#9656;</a></p>
+  <p><a class="enter" href="https://www.banjospirits.com/index.html">Enter Banjo Spirits &#9656;</a></p>
   <p class="s" id="msg">Opening&hellip;</p>
 </div>
 <script>
 (function(){
-  var target = "https://www.banjospirits.com/" + location.search + location.hash;
+  var target = "https://www.banjospirits.com/index.html" + location.search + location.hash;
   // Doubles as a signal: if this line still reads "Opening" on a phone that is stuck,
   // scripting never ran there, and that tells us which of the two routes is broken.
   var m = document.getElementById('msg');

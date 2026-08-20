@@ -126,6 +126,82 @@
     ctx.beginPath(); ctx.arc(x,y,r*1.15,0,Math.PI*2); ctx.fill();
   }
 
+
+  // ---- the moon ------------------------------------------------------------
+  // Drawn at tonight's REAL phase, not a decorative crescent. He wants to tie moon
+  // phases to the wheel later on, so the moon needs to already know what it is -
+  // otherwise the whole thing has to be rebuilt the day that idea arrives.
+  //
+  // Phase runs 0 (new) .. 0.5 (full) .. 1 (new again), measured from a known new moon
+  // and the mean synodic month. Good to a few hours, which is far past what a drawing
+  // of it needs.
+  const SYNODIC = 29.530588853;
+  const NEW_MOON = Date.UTC(2000, 0, 6, 18, 14) / 86400000;   // 6 Jan 2000, a known new moon
+  function moonPhase(now){
+    const days = now.getTime()/86400000 - NEW_MOON;
+    const p = (days / SYNODIC) % 1;
+    return p < 0 ? p + 1 : p;
+  }
+
+  function drawMoon(t){
+    const p  = moonPhase(new Date());
+    // Deliberately small and cool. It is the thing the ride stands under, not a second
+    // subject competing with the wheel for the eye.
+    const mr = Math.max(14, R*0.19);
+    const mx = W - mr*2.9, my = mr*2.7;
+
+    // halo
+    const halo = ctx.createRadialGradient(mx,my,mr*0.6, mx,my,mr*3.4);
+    halo.addColorStop(0,'rgba(214,226,255,0.085)');
+    halo.addColorStop(1,'rgba(190,205,255,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(mx,my,mr*3.4,0,Math.PI*2); ctx.fill();
+
+    // the unlit disc - faint, so a new moon is still a presence in the sky
+    ctx.fillStyle = 'rgba(150,160,205,0.10)';
+    ctx.beginPath(); ctx.arc(mx,my,mr,0,Math.PI*2); ctx.fill();
+
+    // the lit part. The terminator is an ellipse, not an offset circle: the width of
+    // that ellipse is what turns a crescent into a gibbous as the month goes on.
+    const f = (1 - Math.cos(2*Math.PI*p)) / 2;     // 0 new .. 1 full
+    const a = mr * (1 - 2*f);                       // signed semi-axis of the terminator
+    const waxing = p < 0.5;
+
+    ctx.save();
+    ctx.beginPath(); ctx.arc(mx,my,mr,0,Math.PI*2); ctx.clip();
+
+    const g = ctx.createRadialGradient(mx-mr*0.3,my-mr*0.35,mr*0.1, mx,my,mr*1.2);
+    g.addColorStop(0,'#efe9dc'); g.addColorStop(1,'#c9c3e2');
+    ctx.fillStyle = g;
+
+    // The lit face is bounded by the bright limb on one side and the terminator on the
+    // other. That terminator is a half-ellipse whose width runs from +r (new) through
+    // 0 (quarter) to -r (full), so sampling both boundaries and joining them draws every
+    // phase with the same few lines - and new and full fall out as the two end cases
+    // instead of needing to be special-cased.
+    ctx.beginPath();
+    const N = 64, dir = waxing ? 1 : -1;
+    for(let i=0;i<=N;i++){                      // down the bright limb
+      const th = -Math.PI/2 + (i/N)*Math.PI;
+      ctx.lineTo(mx + dir*mr*Math.cos(th), my + mr*Math.sin(th));
+    }
+    for(let i=N;i>=0;i--){                      // and back along the terminator
+      const th = -Math.PI/2 + (i/N)*Math.PI;
+      ctx.lineTo(mx + dir*a*Math.cos(th), my + mr*Math.sin(th));
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // a few seas, kept very soft
+    ctx.globalAlpha = 0.10; ctx.fillStyle = '#6b6f96';
+    const seas = [[-0.30,-0.22,0.30],[0.18,-0.05,0.22],[-0.10,0.30,0.26],[0.32,0.30,0.15]];
+    for(const [ox,oy,rr] of seas){
+      ctx.beginPath(); ctx.arc(mx+ox*mr, my+oy*mr, rr*mr, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   // ---- the ride ------------------------------------------------------------
   function drawGround(){
     const gy = groundY;
@@ -363,6 +439,7 @@
     angle += SPEED * dt;
 
     drawSky(t);
+    drawMoon(t);
     drawGround();
     drawLegs();
     drawPlatform(t);

@@ -1,11 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="background:#0c0710">
 <head>
 <meta charset="utf-8">
-<!-- Sent on before anything can be drawn. This used to sit at the foot of the body, so a
-     phone would lay out the whole page, paint it, and only then be told to leave - which
-     is why anyone on a slow signal was left reading a notice instead of arriving. -->
-<script>location.replace("https://www.banjospirits.com" + location.pathname + location.search + location.hash);</script>
 <title>Banjo Spirits</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://www.banjospirits.com/">
@@ -20,11 +16,15 @@
 </style>
 </head>
 <body>
-<!-- Only ever seen if the journey stalls, so it reads as the site opening rather than as a
-     notice that something has moved - and the word is a link, in case it needs a tap. -->
 <div>
   <p class="n">Banjo Spirits</p>
   <p class="s"><a href="https://www.banjospirits.com/">Opening&hellip;</a></p>
 </div>
+<!-- Deliberately the LAST thing on the page, so the browser paints this first and only
+     then leaves. Putting it in the head is faster on a good signal, but on a weak one it
+     means a blank white screen for the whole wait, with nothing to say the site is coming.
+     A dark screen with the name on it is worth the few milliseconds it costs. The colour
+     is on the <html> tag itself so even the very first paint is dark, never white. -->
+<script>location.replace("https://www.banjospirits.com" + location.pathname + location.search + location.hash);</script>
 </body>
 </html>

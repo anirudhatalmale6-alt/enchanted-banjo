@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Sent on before anything can be drawn. This used to sit at the foot of the body, so a
+     phone would lay out the whole page, paint it, and only then be told to leave - which
+     is why anyone on a slow signal was left reading a notice instead of arriving. -->
+<script>location.replace("https://www.banjospirits.com/" + location.search + location.hash);</script>
 <title>Banjo Spirits</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://www.banjospirits.com/">
@@ -10,11 +14,17 @@
   body{min-height:100vh;margin:0;background:#0c0710;color:#efe6ff;
        font-family:"Segoe UI",system-ui,sans-serif;display:flex;
        align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
-  a{color:#c7b3ff}
+  .n{font-size:20px;letter-spacing:.04em;opacity:.9;margin:0 0 6px}
+  .s{font-size:14px;opacity:.55;margin:0}
+  a{color:#c7b3ff;text-decoration:none}
 </style>
 </head>
 <body>
-<p>Banjo Spirits now lives at <a href="https://www.banjospirits.com/">www.banjospirits.com</a>.<br>Taking you there now&hellip;</p>
-<script>location.replace("https://www.banjospirits.com/" + location.search + location.hash);</script>
+<!-- Only ever seen if the journey stalls, so it reads as the site opening rather than as a
+     notice that something has moved - and the word is a link, in case it needs a tap. -->
+<div>
+  <p class="n">Banjo Spirits</p>
+  <p class="s"><a href="https://www.banjospirits.com/">Opening&hellip;</a></p>
+</div>
 </body>
 </html>
